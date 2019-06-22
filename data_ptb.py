@@ -1,6 +1,6 @@
 import os
 import re
-import cPickle
+import pickle as cPickle
 import copy
 
 import numpy
@@ -30,7 +30,7 @@ for id in file_ids:
     #     test_file_ids.append(id)
     # elif 'WSJ/00/WSJ_0000.MRG' <= id <= 'WSJ/01/WSJ_0199.MRG' or 'WSJ/24/WSJ_2400.MRG' <= id <= 'WSJ/24/WSJ_2499.MRG':
     #     rest_file_ids.append(id)
-
+train_file_ids = train_file_ids[:30]
 
 class Dictionary(object):
     def __init__(self):
@@ -52,7 +52,7 @@ class Dictionary(object):
         return len(self.idx2word)
 
     def __getitem__(self, item):
-        if self.word2idx.has_key(item):
+        if item in self.word2idx:
             return self.word2idx[item]
         else:
             return self.word2idx['<unk>']
@@ -66,7 +66,7 @@ class Dictionary(object):
                 self.idx2word.append(k)
                 self.word2idx[k] = len(self.idx2word) - 1
 
-        print 'Number of words:', len(self.idx2word)
+        print('Number of words:', len(self.idx2word))
         return len(self.idx2word)
 
 

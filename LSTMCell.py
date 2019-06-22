@@ -20,7 +20,7 @@ class LayerNorm(nn.Module):
 class LSTMCell(RNNCellBase):
 
     def __init__(self, input_size, hidden_size, bias=True, dropout=0):
-        super(LSTMCell, self).__init__()
+        super(LSTMCell, self).__init__(input_size, hidden_size, bias, num_chunks=4)
         self.input_size = input_size
         self.hidden_size = hidden_size
         self.bias = bias

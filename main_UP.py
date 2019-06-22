@@ -68,7 +68,8 @@ parser.add_argument('--device', type=int, default=0,
                     help='select GPU')
 args = parser.parse_args()
 
-torch.cuda.set_device(args.device)
+if args.cuda:
+    torch.cuda.set_device(args.device)
 
 # Set the random seed manually for reproducibility.
 torch.manual_seed(args.seed)
@@ -214,8 +215,7 @@ def train():
                 elapsed * 1000 / args.log_interval, cur_loss, math.exp(cur_loss)))
             total_loss = 0
             start_time = time.time()
-
-    return train_loss[0] / batch
+    return train_loss / batch
 
 
 # Loop over epochs.
