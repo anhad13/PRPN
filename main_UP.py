@@ -66,7 +66,11 @@ parser.add_argument('--model', type=str, default='new_gate',
                     help='type of model to use')
 parser.add_argument('--device', type=int, default=0,
                     help='select GPU')
+parser.add_argument('--gpt_path', type=str, default= '/Users/anhadmohananey/Desktop/NLPResearch/pytorch-pretrained-BERT', help='huggingf path')
+
 args = parser.parse_args()
+import sys
+sys.path.append(args.gpt_path)
 
 if args.cuda:
     torch.cuda.set_device(args.device)
@@ -126,7 +130,9 @@ test_data = batchify(corpus.test, eval_batch_size)
 # Build the model
 ###############################################################################
 
-ntokens = len(corpus.dictionary)
+from pytorch_pretrained_bert import OpenAIGPTTokenizer, OpenAIGPTModel, OpenAIGPTLMHeadModel
+gpt_model = OpenAIGPTLMHeadModel.from_pretrained('openai-gpt')
+ntokens = int(gpt_model.transformer.tokens_embed.weight.shape[0])
 model = PRPN(ntokens, args.emsize, args.nhid, args.nlayers,
              args.nslots, args.nlookback, args.resolution,
              args.dropout, args.idropout, args.rdropout,
@@ -168,11 +174,10 @@ def get_batch(source, i, evaluation=False):
     return input, target, mask
 
 
-def evaluate(data_source):
+def evaluate_f1(data_source):
     # Turn on evaluation mode which disables dropout.
     model.eval()
     total_loss = 0
-    ntokens = len(corpus.dictionary)
     for i in range(len(data_source)):
         data, targets, mask = get_batch(data_source, i, evaluation=True)
         hidden = model.init_hidden(eval_batch_size)
@@ -182,13 +187,24 @@ def evaluate(data_source):
     return total_loss[0] / (len(data_source) * eval_batch_size)
 
 
+def evaluate_perplexity(data_source):
+    # Turn on evaluation mode which disables dropout.
+    model.eval()
+    total_loss = 02
+    for i in range(0, len(data_source), args.bptt):
+        hidden = model.init_hidden(eval_batch_size)
+        data, targets, mask = get_batch(data_source, i, evaluation=True)
+        output, hidden = model(data, hidden)
+        total_loss += criterion(output.view(-1, ntokens), targets, mask).data
+    return total_loss / len(data_source)
+
+
 def train():
     # Turn on training mode which enables dropout.
     model.train()
     total_loss = 0
     train_loss = 0
     start_time = time.time()
-    ntokens = len(corpus.dictionary)
     for batch in range(len(train_data)):
         data, targets, mask = get_batch(train_data, batch)
         # Starting each batch, we detach the hidden state from how it was previously produced.
@@ -229,10 +245,10 @@ try:
     for epoch in range(1, args.epochs + 1):
         epoch_start_time = time.time()
         train_loss = train()
-        test_f1 = test(model, corpus, args.cuda)
+        eval_loss = evaluate_perplexity(val_data)
         print('-' * 89)
-        print('| end of epoch {:3d} | time: {:5.2f}s | train loss {:5.2f} | test f1 {:5.2f}'.format(
-            epoch, (time.time() - epoch_start_time), train_loss, test_f1))
+        print('| end of epoch {:3d} | time: {:5.2f}s | train loss {:5.2f} | eval loss {:5.2f}'.format(
+            epoch, (time.time() - epoch_start_time), train_loss, eval_loss))
         print('-' * 89)
         # Save the model if the validation loss is the best we've seen so far.
         if not best_loss or train_loss < best_loss:

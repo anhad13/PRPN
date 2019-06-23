@@ -24,79 +24,27 @@ rest_file_ids = []
 for id in file_ids:
     if 'WSJ/00/WSJ_0000.MRG' <= id <= 'WSJ/24/WSJ_2499.MRG':
         train_file_ids.append(id)
-    # elif 'WSJ/22/WSJ_2200.MRG' <= id <= 'WSJ/22/WSJ_2299.MRG':
-    #     valid_file_ids.append(id)
+    elif 'WSJ/22/WSJ_2200.MRG' <= id <= 'WSJ/22/WSJ_2299.MRG':
+        valid_file_ids.append(id)
     # elif 'WSJ/23/WSJ_2300.MRG' <= id <= 'WSJ/23/WSJ_2399.MRG':
     #     test_file_ids.append(id)
     # elif 'WSJ/00/WSJ_0000.MRG' <= id <= 'WSJ/01/WSJ_0199.MRG' or 'WSJ/24/WSJ_2400.MRG' <= id <= 'WSJ/24/WSJ_2499.MRG':
     #     rest_file_ids.append(id)
 train_file_ids = train_file_ids[:30]
-
-class Dictionary(object):
-    def __init__(self):
-        self.word2idx = {'<unk>': 0}
-        self.idx2word = ['<unk>']
-        self.word2frq = {}
-
-    def add_word(self, word):
-        if word not in self.word2idx:
-            self.idx2word.append(word)
-            self.word2idx[word] = len(self.idx2word) - 1
-        if word not in self.word2frq:
-            self.word2frq[word] = 1
-        else:
-            self.word2frq[word] += 1
-        return self.word2idx[word]
-
-    def __len__(self):
-        return len(self.idx2word)
-
-    def __getitem__(self, item):
-        if item in self.word2idx:
-            return self.word2idx[item]
-        else:
-            return self.word2idx['<unk>']
-
-    def rebuild_by_freq(self, thd=3):
-        self.word2idx = {'<unk>': 0}
-        self.idx2word = ['<unk>']
-
-        for k, v in self.word2frq.iteritems():
-            if v >= thd and (not k in self.idx2word):
-                self.idx2word.append(k)
-                self.word2idx[k] = len(self.idx2word) - 1
-
-        print('Number of words:', len(self.idx2word))
-        return len(self.idx2word)
-
-
+valid_file_ids = train_file_ids
 class Corpus(object):
     def __init__(self, path):
-        dict_file_name = os.path.join(path, 'dict.pkl')
-        if os.path.exists(dict_file_name):
-            self.dictionary = cPickle.load(open(dict_file_name, 'rb'))
-        else:
-            self.dictionary = Dictionary()
-            self.add_words(train_file_ids)
-            # self.add_words(valid_file_ids)
-            # self.add_words(test_file_ids)
-            self.dictionary.rebuild_by_freq()
-            cPickle.dump(self.dictionary, open(dict_file_name, 'wb'))
-
-        self.train, self.train_sens, self.train_trees = self.tokenize(train_file_ids)
-        self.valid, self.valid_sens, self.valid_trees = self.tokenize(valid_file_ids)
-        self.test, self.test_sens, self.test_trees = self.tokenize(test_file_ids)
-        self.rest, self.rest_sens, self.rest_trees = self.tokenize(rest_file_ids)
+        from pytorch_pretrained_bert import OpenAIGPTTokenizer
+        tokenizer = OpenAIGPTTokenizer.from_pretrained('openai-gpt')
+        self.train, self.train_sens, self.train_trees = self.tokenize(train_file_ids, tokenizer)
+        self.valid, self.valid_sens, self.valid_trees = self.tokenize(valid_file_ids, tokenizer)
+        self.test, self.test_sens, self.test_trees = self.tokenize(test_file_ids, tokenizer)
+        self.rest, self.rest_sens, self.rest_trees = self.tokenize(rest_file_ids, tokenizer)
 
     def filter_words(self, tree):
         words = []
         for w, tag in tree.pos():
-            if tag in word_tags:
-                w = w.lower()
-                w = re.sub('[0-9]+', 'N', w)
-                # if tag == 'CD':
-                #     w = 'N'
-                words.append(w)
+             words.append(w)
         return words
 
     def add_words(self, file_ids):
@@ -106,10 +54,8 @@ class Corpus(object):
             for sen_tree in sentences:
                 words = self.filter_words(sen_tree)
                 words = ['<s>'] + words + ['</s>']
-                for word in words:
-                    self.dictionary.add_word(word)
 
-    def tokenize(self, file_ids):
+    def tokenize(self, file_ids, gpt_tokenizer):
 
         def tree2list(tree):
             if isinstance(tree, nltk.Tree):
@@ -134,13 +80,14 @@ class Corpus(object):
             sentences = ptb.parsed_sents(id)
             for sen_tree in sentences:
                 words = self.filter_words(sen_tree)
-                words = ['<s>'] + words + ['</s>']
+                words = ['<s>'] + words + ['<s>']
                 # if len(words) > 50:
                 #     continue
+                ### now GPT tokenization
+                words = gpt_tokenizer.tokenize(" ".join(words))
+                ########
                 sens.append(words)
-                idx = []
-                for word in words:
-                    idx.append(self.dictionary[word])
+                idx = gpt_tokenizer.convert_tokens_to_ids(words)
                 sens_idx.append(torch.LongTensor(idx))
                 trees.append(tree2list(sen_tree))
 

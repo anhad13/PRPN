@@ -57,10 +57,10 @@ def test(model, corpus, cuda, prt=False):
     f1_list = []
 
     nsens = 0
-    for sen, sen_tree in zip(corpus.train_sens, corpus.train_trees):
+    for tensor_ids, sen, sen_tree in zip(corpus.valid, corpus.valid_sens, corpus.valid_trees):
         if len(sen) > 12:
             continue
-        x = numpy.array([corpus.dictionary[w] for w in sen])
+        x = numpy.array(tensor_ids)
         input = Variable(torch.LongTensor(x[:, None]))
         if cuda:
             input = input.cuda()
