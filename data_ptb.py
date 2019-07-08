@@ -15,6 +15,10 @@ currency_tags_words = ['#', '$', 'C$', 'A$']
 ellipsis = ['*', '*?*', '0', '*T*', '*ICH*', '*U*', '*RNR*', '*EXP*', '*PPA*', '*NOT*']
 punctuation_tags = ['.', ',', ':', '-LRB-', '-RRB-', '\'\'', '``']
 punctuation_words = ['.', ',', ':', '-LRB-', '-RRB-', '\'\'', '``', '--', ';', '-', '?', '!', '...', '-LCB-', '-RCB-']
+from nltk.corpus import BracketParseCorpusReader
+corpus_root = r"/home/am8676/nltk_data/corpora/PTB/"
+file_pattern = r".*/WSJ_.*\.MRG"
+ptb = BracketParseCorpusReader(corpus_root, file_pattern)
 
 file_ids = ptb.fileids()
 train_file_ids = []
@@ -30,8 +34,8 @@ for id in file_ids:
     #     test_file_ids.append(id)
     # elif 'WSJ/00/WSJ_0000.MRG' <= id <= 'WSJ/01/WSJ_0199.MRG' or 'WSJ/24/WSJ_2400.MRG' <= id <= 'WSJ/24/WSJ_2499.MRG':
     #     rest_file_ids.append(id)
-train_file_ids = train_file_ids[:30]
-valid_file_ids = train_file_ids
+#train_file_ids = train_file_ids[:30]
+#valid_file_ids = train_file_ids
 class Corpus(object):
     def __init__(self, path):
         from pytorch_pretrained_bert import OpenAIGPTTokenizer

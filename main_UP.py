@@ -190,12 +190,13 @@ def evaluate_f1(data_source):
 def evaluate_perplexity(data_source):
     # Turn on evaluation mode which disables dropout.
     model.eval()
-    total_loss = 02
+    total_loss = 0.0
     for i in range(0, len(data_source), args.bptt):
         hidden = model.init_hidden(eval_batch_size)
         data, targets, mask = get_batch(data_source, i, evaluation=True)
         output, hidden = model(data, hidden)
         total_loss += criterion(output.view(-1, ntokens), targets, mask).data
+    import pdb;pdb.set_trace()
     return total_loss / len(data_source)
 
 
@@ -221,9 +222,8 @@ def train():
 
         total_loss += loss.data
         train_loss += loss.data
-
         if batch % args.log_interval == 0 and batch > 0:
-            cur_loss = total_loss[0] / args.log_interval
+            cur_loss = total_loss / args.log_interval
             elapsed = time.time() - start_time
             print('| epoch {:3d} | {:5d}/{:5d} batches | lr {:02.2f} | ms/batch {:5.2f} | '
                   'loss {:5.2f} | ppl {:8.2f}'.format(
