@@ -66,6 +66,8 @@ parser.add_argument('--model', type=str, default='new_gate',
                     help='type of model to use')
 parser.add_argument('--device', type=int, default=0,
                     help='select GPU')
+parser.add_argument('--training_option', type=str, default='fine_tune_gpt',
+                    help='fine_tune_gpt|')
 parser.add_argument('--gpt_path', type=str, default= '/Users/anhadmohananey/Desktop/NLPResearch/pytorch-pretrained-BERT', help='huggingf path')
 
 args = parser.parse_args()
@@ -140,7 +142,6 @@ model = PRPN(ntokens, args.emsize, args.nhid, args.nlayers,
 if args.cuda:
     model.cuda()
 
-
 # criterion = nn.CrossEntropyLoss()
 def criterion(input, targets, targets_mask):
     targets_mask = targets_mask.view(-1)
@@ -200,7 +201,7 @@ def evaluate_perplexity(data_source):
     return total_loss / len(data_source)
 
 
-def train():
+def train(training_option):
     # Turn on training mode which enables dropout.
     model.train()
     total_loss = 0
@@ -212,7 +213,10 @@ def train():
         # If we didn't, the model would try backpropagating all the way to start of the dataset.
         hidden = model.init_hidden(args.batch_size)
         optimizer.zero_grad()
-        output, _ = model(data, hidden)
+        if training_option == "fine_tune_gpt":
+            output = gpt_model(data)
+        else:    
+            output, _ = model(data, hidden)
         loss = criterion(output.view(-1, ntokens), targets, mask)
         loss.backward()
 
@@ -239,12 +243,13 @@ lr = args.lr
 best_loss = None
 optimizer = optim.Adam(model.parameters(), lr=args.lr, betas=(0, 0.999), eps=1e-9, weight_decay=args.weight_decay)
 scheduler = lr_scheduler.ReduceLROnPlateau(optimizer, 'min', 0.5, patience=0)
-
+training_option = args.training_option
 # At any point you can hit Ctrl + C to break out of training early.
 try:
     for epoch in range(1, args.epochs + 1):
         epoch_start_time = time.time()
-        train_loss = train()
+        print("training option:   " + training_option)
+        train_loss = train(training_option)
         eval_loss = evaluate_perplexity(val_data)
         print('-' * 89)
         print('| end of epoch {:3d} | time: {:5.2f}s | train loss {:5.2f} | eval loss {:5.2f}'.format(
